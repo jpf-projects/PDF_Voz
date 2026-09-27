@@ -1,0 +1,35 @@
+PDF VOZ — ATUALIZAÇÃO 0.2.2
+
+1. Feche o leitor antes de substituir os arquivos.
+2. Extraia este ZIP dentro da mesma pasta do projeto anterior.
+3. Aceite substituir os arquivos com o mesmo nome. Preserve .venv e models.
+4. Execute 5_ABRIR_LEITOR.bat. A janela deve mostrar Leitor 0.2.2.
+   Se faltar alguma dependência, execute 4_ATUALIZAR_LEITOR.bat primeiro.
+
+Não é necessário baixar novamente os modelos. O progresso é preservado.
+
+AJUSTE DE INTERFACE 0.2.2
+Removidos o texto duplicado do trecho e a barra de navegação do livro.
+A navegação por páginas, sumário e clique no PDF continua disponível.
+
+CONTROLES
+- Volume do leitor com percentual e preferência salva.
+- Saída de áudio: padrão do sistema, fone ou alto-falante detectado.
+- Atualizar saídas e atalho Som do Windows.
+- Vozes Dora, Alex e Santa.
+- Reserva inicial 15, 30 ou 60 segundos (padrão 30).
+- Ouvir o que já está pronto: libera o início quando houver um trecho pronto.
+
+TESTE NO WINDOWS
+Inicie a leitura. Escolha o fone e depois o alto-falante.
+Altere o volume do leitor e teste 0% (silêncio).
+Com o som tocando, teste o volume do Windows no mesmo dispositivo.
+Escolha Padrão do sistema e altere a saída nas configurações do Windows.
+Se necessário, clique Atualizar saídas.
+Troque a voz durante a preparação e durante a leitura; a frase reinicia.
+Experimente reserva 15 s e depois 30 s para comparar espera e interrupções.
+
+A redução da reserva não acelera o processador nem garante leitura contínua.
+O controle físico de áudio no Windows ainda precisa desta validação local.
+A limpeza automática dos áudios continua ativa.
+Mais detalhes: README_LEITOR.md.

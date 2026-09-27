@@ -1,0 +1,10 @@
+PDF VOZ 0.2.3 - PRIMEIRA INSTALACAO
+
+1. Baixe o ZIP completo do projeto e extraia todos os arquivos para uma pasta.
+2. Instale Python 3.12 de 64 bits, se ainda nao estiver instalado.
+3. Com internet, execute 1_INSTALAR.bat e aguarde a conclusao.
+4. Execute 4_ATUALIZAR_LEITOR.bat para instalar a interface grafica.
+5. Execute 5_ABRIR_LEITOR.bat e clique em Abrir PDF.
+
+Nao e necessario instalar eSpeak NG separadamente; ele vem pela dependencia
+espeakng-loader. Veja README.md para requisitos, detalhes e ajuda.

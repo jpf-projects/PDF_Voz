@@ -1,0 +1,18 @@
+PDF VOZ 0.2.3 — PAUSAS E FINAIS DE FRASE
+
+1. Feche o leitor.
+2. Extraia na mesma pasta do projeto, substituindo os arquivos.
+3. Preserve .venv e models. Não precisa instalar dependências.
+4. Execute 5_ABRIR_LEITOR.bat. Confira Leitor 0.2.3 no título.
+5. Abra o mesmo PDF e ouça um trecho em que havia corte, inicialmente a 1x.
+
+O áudio é regenerado. O ponto salvo retoma do início do trecho correspondente.
+Mantém CPU com duas threads, vozes atuais e limpeza automática dos áudios.
+
+Ajustes: recorte de silêncio mais conservador, proteção das extremidades da fala,
+pausas entre trechos conforme a pontuação e união de continuações evidentes entre
+blocos do PDF. Mais detalhes no README_LEITOR.md.
+
+Se ainda cortar, envie uma gravação curta e indique a página e a frase exata,
+voz escolhida e velocidade. Isso ajuda a diferenciar pronúncia, extração do PDF,
+transição de arquivos e falta de áudio no buffer.

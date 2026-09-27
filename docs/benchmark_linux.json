@@ -1,0 +1,45 @@
+{
+  "voz": "pf_dora",
+  "idioma": "pt-br",
+  "provider": "CPUExecutionProvider",
+  "carregamento_modelo_s": 3.575,
+  "geracao_s": 24.9214,
+  "audio_s": 39.8934,
+  "tempo_operacao_s": 24.9438,
+  "rtf": 0.6247,
+  "trechos": [
+    {
+      "trecho": 1,
+      "caracteres": 269,
+      "geracao_s": 9.7587,
+      "audio_s": 15.0187
+    },
+    {
+      "trecho": 2,
+      "caracteres": 289,
+      "geracao_s": 12.7372,
+      "audio_s": 20.864
+    },
+    {
+      "trecho": 3,
+      "caracteres": 67,
+      "geracao_s": 2.4255,
+      "audio_s": 4.0107
+    }
+  ],
+  "aplicacao": "0.1.0",
+  "python": "3.12.14",
+  "sistema": "Linux",
+  "arquitetura": "x86_64",
+  "pacotes": {
+    "kokoro-onnx": "0.6.1",
+    "onnxruntime": "1.30.0",
+    "numpy": "2.5.3",
+    "soundfile": "0.13.1",
+    "pypdf": "6.1.1",
+    "phonemizer": "3.4.0",
+    "espeakng-loader": "0.2.4"
+  },
+  "data_utc": "2026-09-26T21:42:27.404556+00:00",
+  "arquivo_audio": "exemplo_dora_linux.wav"
+}
