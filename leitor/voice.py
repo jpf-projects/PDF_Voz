@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 import os
 import time
@@ -5,6 +6,7 @@ import json
 import shutil
 import tempfile
 from .speech import finish_audio
+from .narration import prepare_spoken_text, spoken_chunks, NARRATION_REVISION
 
 
 def select_portuguese(languages):
@@ -38,7 +40,15 @@ def prepare_espeak():
                 continue
             try:
                 target = Path(base) / "PDFVozPronuncia_0_2" / "espeak-ng-data"
-                shutil.copytree(data, target, dirs_exist_ok=True)
+                # Só reutiliza a cópia se origem/versão e arquivo principal coincidirem.
+                import importlib.metadata
+                signature = json.dumps([str(data), importlib.metadata.version('espeakng-loader'),
+                                        (data / 'phontab').stat().st_mtime_ns])
+                marker = target.parent / 'origem.json'
+                if (not (target / 'phontab').is_file() or not marker.is_file()
+                        or marker.read_text('utf-8') != signature):
+                    shutil.copytree(data, target, dirs_exist_ok=True)
+                    marker.write_text(signature, encoding='utf-8')
                 data = target
                 break
             except OSError:
@@ -61,6 +71,8 @@ def prepare_espeak():
         "idiomas_disponiveis": languages, "dados_copiados_para_caminho_ascii": "PDFVozPronuncia_0_2" in str(data),
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     return library, str(data), select_portuguese(languages), temporary
+
+
 
 
 class VoiceEngine:
@@ -91,33 +103,44 @@ class VoiceEngine:
         if voice not in self.model.get_voices():
             raise ValueError(f"Voz não encontrada: {voice}")
         destination = Path(destination)
-        temporary = destination.with_suffix(".part.wav")
+        temporary = destination.with_suffix('.part.wav')
         rows = []
         start = time.perf_counter()
         writer = None
         expected_rate = None
         try:
-            for index, text in enumerate(parts, 1):
-                progress(f"Gerando trecho {index}/{len(parts)}...")
-                tick = time.perf_counter()
-                audio, rate = self.model.create(text, voice=voice, lang=self.language, speed=1.0, trim=False)
-                elapsed = time.perf_counter() - tick
-                audio = np.asarray(audio).reshape(-1)
-                if rate <= 0 or len(audio) < rate * .05 or not np.isfinite(audio).all():
-                    raise ValueError(f"Áudio inválido no trecho {index}.")
-                if float(np.max(np.abs(audio))) < 1e-5:
-                    raise ValueError(f"Áudio silencioso no trecho {index}.")
-                audio = finish_audio(audio, rate, text)
-                if writer is None:
-                    expected_rate = rate
-                    writer = sf.SoundFile(str(temporary), "w", samplerate=rate, channels=1, subtype="PCM_16")
-                if rate != expected_rate:
-                    raise ValueError("Frequência do áudio mudou durante a geração.")
-                writer.write(audio)
-                rows.append({"trecho": index, "caracteres": len(text),
-                             "geracao_s": round(elapsed, 4), "audio_s": round(len(audio) / rate, 4)})
+            for index, part in enumerate(parts, 1):
+                text = part['text'] if isinstance(part, dict) else part
+                kind = part.get('kind', 'prose') if isinstance(part, dict) else 'prose'
+                spoken = prepare_spoken_text(text, kind)
+                chunks = list(spoken_chunks(spoken))
+                if not chunks:
+                    raise ValueError(f'Texto vazio no trecho {index}.')
+                generation, duration = 0., 0.
+                for chunk_index, chunk in enumerate(chunks, 1):
+                    progress(f'Gerando trecho {index}/{len(parts)}, parte {chunk_index}/{len(chunks)}...')
+                    tick = time.perf_counter()
+                    audio, rate = self.model.create(chunk, voice=voice, lang=self.language,
+                                                    speed=1.0, trim=False)
+                    generation += time.perf_counter() - tick
+                    audio = np.asarray(audio).reshape(-1)
+                    if rate <= 0 or len(audio) < rate * .05 or not np.isfinite(audio).all():
+                        raise ValueError(f'Áudio inválido no trecho {index}.')
+                    if float(np.max(np.abs(audio))) < 1e-5:
+                        raise ValueError(f'Áudio silencioso no trecho {index}.')
+                    audio = finish_audio(audio, rate, chunk)
+                    if writer is None:
+                        expected_rate = rate
+                        writer = sf.SoundFile(str(temporary), 'w', samplerate=rate,
+                                              channels=1, subtype='PCM_16')
+                    if rate != expected_rate:
+                        raise ValueError('Frequência do áudio mudou durante a geração.')
+                    writer.write(audio)
+                    duration += len(audio) / rate
+                rows.append({'trecho': index, 'caracteres': len(text), 'caracteres_falados': len(spoken),
+                             'kind': kind, 'geracao_s': round(generation, 4), 'audio_s': round(duration, 4)})
             if writer is None:
-                raise ValueError("Texto vazio.")
+                raise ValueError('Texto vazio.')
             writer.close()
             writer = None
             os.replace(temporary, destination)
@@ -125,11 +148,11 @@ class VoiceEngine:
             if writer:
                 writer.close()
             temporary.unlink(missing_ok=True)
-        duration = sum(row["audio_s"] for row in rows)
-        synthesis = sum(row["geracao_s"] for row in rows)
-        return {"voz": voice, "idioma": "pt-br", "espeak_codigo": self.language,
-                "patch_voz": "0.1.1", "provider": "CPUExecutionProvider",
-                "carregamento_modelo_s": round(self.load_seconds, 4),
-                "geracao_s": round(synthesis, 4), "audio_s": round(duration, 4),
-                "tempo_operacao_s": round(time.perf_counter() - start, 4),
-                "rtf": round(synthesis / duration, 4), "trechos": rows}
+        duration = sum(row['audio_s'] for row in rows)
+        synthesis = sum(row['geracao_s'] for row in rows)
+        return {'voz': voice, 'idioma': 'pt-br', 'espeak_codigo': self.language,
+                'patch_voz': NARRATION_REVISION, 'provider': 'CPUExecutionProvider',
+                'carregamento_modelo_s': round(self.load_seconds, 4),
+                'geracao_s': round(synthesis, 4), 'audio_s': round(duration, 4),
+                'tempo_operacao_s': round(time.perf_counter() - start, 4),
+                'rtf': round(synthesis / duration, 4), 'trechos': rows}

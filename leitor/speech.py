@@ -1,6 +1,7 @@
 """Conserva as extremidades da fala e recompõe pausas entre arquivos."""
 import re
-AUDIO_REVISION = 'pausas-1'
+from .narration import NARRATION_REVISION
+AUDIO_REVISION = 'pausas-1:' + NARRATION_REVISION
 
 
 def finish_audio(audio, rate, text):

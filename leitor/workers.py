@@ -36,7 +36,7 @@ def voice_worker(commands, results, model_dir):
     from pathlib import Path
     from .voice import VoiceEngine
     try:
-        engine = VoiceEngine(Path(model_dir) / "kokoro-v1.0.onnx", Path(model_dir) / "voices-v1.0.bin", threads=2)
+        engine = VoiceEngine(Path(model_dir) / "kokoro-v1.0.onnx", Path(model_dir) / "voices-v1.0.bin", threads=4)
         results.put({"kind": "ready"})
     except Exception as error:
         results.put({"kind": "error", "error": str(error), "detail": traceback.format_exc(), "fatal": True})
@@ -46,7 +46,9 @@ def voice_worker(commands, results, model_dir):
         if job is None:
             break
         try:
-            metric = engine.render([job["text"]], job.get("voice", "pf_dora"), job["path"], progress=lambda _: None)
+            metric = engine.render([{'text': job['text'], 'kind': job.get('kind', 'prose')}],
+                job.get('voice', 'pf_dora'), job['path'],
+                progress=lambda _: results.put({'kind': 'progress', 'token': job['token']}))
             results.put({"kind": "audio", "token": job["token"], "index": job["index"],
                          "path": job["path"], "duration": metric["audio_s"], "generation": metric["geracao_s"]})
         except Exception as error:

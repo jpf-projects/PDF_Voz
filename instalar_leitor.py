@@ -35,6 +35,8 @@ def main():
             log.write(line)
         if process.wait():
             raise RuntimeError("Instalação incompleta. Veja logs/instalacao_leitor.txt.")
+    freeze = subprocess.check_output([str(env), '-m', 'pip', 'freeze'])
+    (ROOT / 'logs' / 'dependencias_instaladas.txt').write_bytes(freeze)
     print("\nInterface instalada. Execute 5_ABRIR_LEITOR.bat. Os modelos existentes serão reaproveitados.")
 
 

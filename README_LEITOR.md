@@ -1,3 +1,5 @@
+> Atualização atual: **0.2.4**. Leia `LEIA_PRIMEIRO_v0_2_4.txt` e `docs/VALIDACAO_v0_2_4.md`. As instruções de versões abaixo são históricas quando divergirem.
+
 # PDF Voz 0.2.3
 
 Leitor desktop local para PDFs simples em português. Vozes Dora, Alex e Santa, reprodução por trechos, destaque no PDF, clique para iniciar, pausa/continuação, navegação, volume, velocidade e progresso salvo.

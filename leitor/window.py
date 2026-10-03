@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
     QComboBox, QLineEdit, QTabWidget, QTreeWidget, QTreeWidgetItem)
 
 from .domain import buffered_seconds, next_missing, remap_progress
+from . import VERSION
 from .speech import AUDIO_REVISION
 from .storage import Store, clean_sessions
 from .viewer import PDFView
@@ -22,6 +23,7 @@ from .workers import ProcessChannel, pdf_worker, voice_worker
 TARGET = 30.0
 MAX_AHEAD = 90.0
 MAX_BYTES = 500 * 1024 * 1024
+WORKER_TIMEOUT = 300.0  # Cinco minutos sem retorno/progresso.
 
 
 class MainWindow(QMainWindow):
@@ -35,6 +37,10 @@ class MainWindow(QMainWindow):
         self.pdf = self.tts = None
         self.tts_ready = False
         self.pending_audio = None
+        self.pdf_activity = self.tts_activity = time.monotonic()
+        self.page_segments = {}
+        self.saved_snapshot = None
+        self.metrics = []
         self.cache = {}
         self.garbage = set()
         self.retired_folders = set()
@@ -80,7 +86,7 @@ class MainWindow(QMainWindow):
         self.refresh_recent()
 
     def build_ui(self):
-        self.setWindowTitle("PDF Voz • Leitor 0.2.3")
+        self.setWindowTitle(f"PDF Voz • Leitor {VERSION}")
         self.resize(1160, 800)
         self.setMinimumSize(850, 600)
         self.setStyleSheet('''
@@ -207,6 +213,11 @@ class MainWindow(QMainWindow):
         self.reserve.setCurrentIndex(max(0, self.reserve.findData(int(self.store.get("reserve", "30")))))
         self.reserve.setToolTip("Reserva de fala pronta, não tempo de espera. Menor reserva pode causar mais pausas.")
         self.reserve.currentIndexChanged.connect(self.change_reserve)
+        self.narration_mode = QComboBox()
+        for label, code in (("Automático", "auto"), ("Prosa", "prose"), ("Código", "code")):
+            self.narration_mode.addItem(label, code)
+        self.narration_mode.setToolTip("Tratamento da fala deste livro. Automático usa o tipo extraído do PDF.")
+        self.narration_mode.currentIndexChanged.connect(self.change_narration_mode)
         self.start_now = QPushButton("Ouvir o que já está pronto")
         self.start_now.setEnabled(False)
         self.start_now.clicked.connect(self.play_ready)
@@ -214,6 +225,11 @@ class MainWindow(QMainWindow):
             options.addWidget(widget)
         options.addStretch()
         layout.addLayout(options)
+        narration_row = QHBoxLayout()
+        narration_row.addWidget(QLabel('Tratamento da leitura'))
+        narration_row.addWidget(self.narration_mode)
+        narration_row.addStretch()
+        layout.addLayout(narration_row)
         self.status = QLabel("Pronto. A voz é preparada localmente; não é necessário enviar seu livro.")
         self.buffer = QProgressBar()
         self.buffer.setRange(0, 60)
@@ -228,12 +244,49 @@ class MainWindow(QMainWindow):
         logs = QAction("Abrir pasta de dados e diagnóstico", self)
         logs.triggered.connect(self.open_data)
         menu.addAction(logs)
+        forget = QAction("Remover livro atual do histórico", self)
+        forget.triggered.connect(self.forget_book)
+        menu.addAction(forget)
+        diagnostic = QAction("Gerar diagnóstico atual", self)
+        diagnostic.triggered.connect(self.write_diagnostic)
+        menu.addAction(diagnostic)
         models = QAction("Selecionar pasta dos modelos…", self)
         models.triggered.connect(self.select_models)
         menu.addAction(models)
         QShortcut(QKeySequence("Space"), self, activated=self.toggle_play)
         QShortcut(QKeySequence("PgDown"), self, activated=lambda: self.show_page(self.page + 1))
         QShortcut(QKeySequence("PgUp"), self, activated=lambda: self.show_page(self.page - 1))
+
+    def audio_revision(self):
+        return AUDIO_REVISION + ':' + (self.narration_mode.currentData() or 'auto')
+
+    def change_narration_mode(self, _):
+        if self.book:
+            self.store.set('narration_mode:' + self.book['hash'], self.narration_mode.currentData())
+            self.change_voice(0)
+            self.status.setText('Tratamento da fala alterado. O trecho atual será preparado novamente.')
+
+    def forget_book(self):
+        if not self.book:
+            return
+        key = self.book['hash']
+        self.close_book()
+        self.store.forget(key)
+        self.refresh_recent()
+        self.status.setText('Livro removido do histórico. O PDF original foi mantido.')
+
+    def write_diagnostic(self):
+        from .diagnostics import diagnostics
+        folder = self.root / 'logs'
+        folder.mkdir(exist_ok=True)
+        report = diagnostics()
+        report['ultimos_trechos'] = self.metrics[-20:]
+        report['voz'] = self.voice_choice.currentData()
+        report['tratamento'] = self.narration_mode.currentData()
+        report['velocidade'] = self.rate.value()
+        path = folder / 'diagnostico_atual.json'
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
+        self.status.setText('Diagnóstico salvo em: ' + str(path))
 
     def change_volume(self, value):
         self.audio.setVolume(value / 100)
@@ -331,15 +384,25 @@ class MainWindow(QMainWindow):
         self.opening_path = str(path)
         self.importing = True
         self.status.setText("Preparando livro…")
+        self.pdf_activity = time.monotonic()
         self.pdf = ProcessChannel(pdf_worker)
         self.pdf.send({"kind": "open", "path": str(path), "password": password})
 
     def book_ready(self, book):
         self.importing = False
+        self.narration_mode.blockSignals(True)
+        self.narration_mode.setCurrentIndex(max(0, self.narration_mode.findData(
+            self.store.get('narration_mode:' + book['hash'], 'auto'))))
+        self.narration_mode.blockSignals(False)
+        self.saved_snapshot = None
         saved = remap_progress(self.store.load(book["hash"]), self.store.book_payload(book["hash"]), book)
-        if saved and self.store.get("audio_revision:" + book["hash"]) != AUDIO_REVISION:
+        if saved and self.store.get("audio_revision:" + book["hash"]) != self.audio_revision():
             saved = dict(saved, offset=0)
         self.book = book
+        self.page_segments = {}
+        for segment in book['segments']:
+            for page in {region['page'] for region in segment['regions']}:
+                self.page_segments.setdefault(page, []).append(segment)
         self.store.put_book(book)
         self.refresh_recent()
         self.folder = self.audio_root / ("session_" + uuid.uuid4().hex)
@@ -395,7 +458,7 @@ class MainWindow(QMainWindow):
         self.viewer.clear_page()
         self.shown_page = None
         self.lines.clear()
-        for segment in self.book["segments"]:
+        for segment in self.page_segments.get(page, []):
             if any(r["page"] == page for r in segment["regions"]):
                 text = segment["text"]
                 item = QListWidgetItem(text[:140] + ("…" if len(text) > 140 else ""))
@@ -407,6 +470,7 @@ class MainWindow(QMainWindow):
 
     def request_render(self):
         if self.pdf and self.render_pending and not self.render_busy:
+            self.pdf_activity = time.monotonic()
             self.pdf.send(self.render_pending)
             self.render_pending = None
             self.render_busy = True
@@ -414,7 +478,7 @@ class MainWindow(QMainWindow):
     def page_ready(self, message):
         self.render_busy = False
         if self.book and message["request"] == self.render_id:
-            regions = [(s["id"], r["display_box"]) for s in self.book["segments"]
+            regions = [(s["id"], r["display_box"]) for s in self.page_segments.get(message["page"], [])
                        for r in s["regions"] if r["page"] == message["page"]]
             self.viewer.show_page(message["png"], message["scale"], regions)
             self.viewer.set_zoom(self.zoom.value())
@@ -465,29 +529,44 @@ class MainWindow(QMainWindow):
         if not path:
             return False
         self.tts_ready = False
+        self.tts_activity = time.monotonic()
         self.tts = ProcessChannel(voice_worker, path)
         return True
 
     def toggle_play(self):
         if not self.book or not self.book["segments"]:
             return
+
         if self.desired:
             self.desired = False
             self.player.pause()
+
             if self.phase != "loading":
                 self.phase = "paused"
+
             self.save_progress()
             self.play_button.setText("Continuar")
-            self.status.setText("Pausado. O trecho em preparação pode terminar em segundo plano.")
+            self.status.setText(
+                "Pausado. Preparando áudio em segundo plano "
+                "até o limite da reserva."
+            )
             self.highlight()
+            self.drive()
             return
+
         if self.completed:
             self.navigate(0, False)
+
         if not self.ensure_voice():
             return
+
         self.desired = True
         self.play_button.setText("Pausar")
-        if self.loaded_index == self.index and self.player.source().isValid():
+
+        if (
+            self.loaded_index == self.index
+            and self.player.source().isValid()
+        ):
             if self.phase == "loading":
                 self.start_loaded()
             else:
@@ -495,7 +574,9 @@ class MainWindow(QMainWindow):
                 self.phase = "playing"
         else:
             self.phase = "buffering"
+
         self.drive()
+        
 
     def unload_player(self):
         self.loading_guard = True
@@ -534,19 +615,64 @@ class MainWindow(QMainWindow):
             self.drive()
 
     def drive(self):
-        if not self.book or not self.desired or not self.tts or not self.tts_ready or self.phase == "error":
+        if (
+            not self.book
+            or not self.tts
+            or not self.tts_ready
+            or self.completed
+            or self.phase == "error"
+        ):
             return
-        seconds, end_ready = buffered_seconds(self.cache, self.index, len(self.book["segments"]), self.offset, self.rate.value())
-        if self.phase == "buffering" and self.index in self.cache and (seconds >= self.reserve.currentData() or end_ready):
+
+        seconds, end_ready = buffered_seconds(
+            self.cache,
+            self.index,
+            len(self.book["segments"]),
+            self.offset,
+            self.rate.value(),
+        )
+
+        # Só inicia a reprodução quando o usuário deseja ouvir.
+        if (
+            self.desired
+            and self.phase == "buffering"
+            and self.index in self.cache
+            and (
+                seconds >= self.reserve.currentData()
+                or end_ready
+            )
+        ):
             self.load_current()
+
+        # A geração pode continuar mesmo com a reprodução pausada.
         if self.pending_audio is None and seconds < MAX_AHEAD:
-            index = next_missing(self.cache, self.index, len(self.book["segments"]))
+            index = next_missing(
+                self.cache,
+                self.index,
+                len(self.book["segments"]),
+            )
+
             if index is not None:
-                path = self.folder / f"{self.token}_{index}_{uuid.uuid4().hex[:6]}.wav"
-                job = {"index": index, "text": self.book["segments"][index]["text"],
-                       "path": str(path), "token": self.token, "voice": self.voice_choice.currentData()}
+                path = (
+                    self.folder
+                    / f"{self.token}_{index}_{uuid.uuid4().hex[:6]}.wav"
+                )
+
+                job = {
+                    "index": index,
+                    "text": self.book["segments"][index]["text"],
+                    "path": str(path),
+                    "token": self.token,
+                    "voice": self.voice_choice.currentData(),
+                    "kind": (self.book['segments'][index].get('kind', 'prose')
+                             if self.narration_mode.currentData() == 'auto'
+                             else self.narration_mode.currentData()),
+                }
+
                 self.pending_audio = job
+                self.tts_activity = time.monotonic()
                 self.tts.send(job)
+
 
     def load_current(self):
         if self.index not in self.cache:
@@ -667,6 +793,7 @@ class MainWindow(QMainWindow):
             return
         if self.pdf:
             for message in list(self.pdf.poll()):
+                self.pdf_activity = time.monotonic()
                 if message["kind"] == "book":
                     self.book_ready(message["book"])
                 elif message["kind"] == "page":
@@ -684,17 +811,25 @@ class MainWindow(QMainWindow):
                             self.close_book()
                         return
                     self.fail(message["error"], message["detail"])
-            if self.pdf and not self.pdf.process.is_alive() and self.importing:
-                self.importing = False
-                self.fail("O processo de abertura do PDF foi encerrado. Abra o livro novamente.")
+            if self.pdf and (not self.pdf.process.is_alive() or (
+                    (self.importing or self.render_busy) and time.monotonic() - self.pdf_activity > WORKER_TIMEOUT)):
+                self.pdf.stop()
+                self.pdf = None
+                self.importing = self.render_busy = False
+                self.render_pending = None
+                self.fail('O processo PDF parou ou excedeu cinco minutos sem resposta. Use Abrir PDF novamente.')
         if self.tts:
             for message in list(self.tts.poll()):
+                self.tts_activity = time.monotonic()
                 if message["kind"] == "ready":
                     self.tts_ready = True
                 elif message["kind"] == "audio":
                     self.pending_audio = None
                     if message["token"] == self.token and self.book:
                         self.cache[message["index"]] = message
+                        self.metrics.append({'generation': message['generation'], 'duration': message['duration'],
+                                             'rtf': message['generation'] / max(.001, message['duration'])})
+                        self.metrics = self.metrics[-20:]
                         logging.info("audio index=%s duration=%.2f generation=%.2f", message["index"], message["duration"], message["generation"])
                         if sum(p.stat().st_size for p in self.folder.glob("*.wav")) > MAX_BYTES:
                             self.fail("Limite de áudio temporário atingido. Use Limpar áudios para continuar.")
@@ -711,12 +846,17 @@ class MainWindow(QMainWindow):
                         self.tts_ready = False
                     if message.get("fatal") or message.get("token") == self.token:
                         self.fail("Falha na voz: " + message["error"], message["detail"])
-            if self.tts and not self.tts.process.is_alive():
+            if self.tts and (not self.tts.process.is_alive() or (
+                    (not self.tts_ready or self.pending_audio is not None)
+                    and time.monotonic() - self.tts_activity > WORKER_TIMEOUT)):
                 self.tts.stop()
                 self.tts = None
+                if self.pending_audio:
+                    path = Path(self.pending_audio['path'])
+                    self.garbage.update((str(path), str(path.with_suffix('.part.wav'))))
                 self.pending_audio = None
                 self.tts_ready = False
-                self.fail("O mecanismo de voz foi encerrado. Clique em Tentar novamente.")
+                self.fail("O mecanismo de voz parou ou excedeu cinco minutos sem progresso. Clique em Tentar novamente.")
         self.collect_garbage()
         self.start_loaded()
         self.drive()
@@ -731,6 +871,13 @@ class MainWindow(QMainWindow):
         self.buffer.setValue(min(target, int(seconds)))
         self.start_now.setEnabled(self.desired and self.phase == "buffering" and self.index in self.cache)
         self.buffer.setFormat(f"Áudio preparado à frente: {seconds:.0f} s · reserva inicial: {target} s")
+        if self.metrics:
+            total_audio = sum(m['duration'] for m in self.metrics)
+            rtf = sum(m['generation'] for m in self.metrics) / max(.001, total_audio)
+            self.buffer.setToolTip(f'RTF recente: {rtf:.2f}. Para sustentar {self.rate.value():.2f}×, precisa ficar abaixo de {1/self.rate.value():.2f}, com margem.')
+        if not self.desired and self.phase == 'paused' and not self.completed and self.tts:
+            self.status.setText('Pausado. Preparando áudio em segundo plano.' if self.pending_audio
+                                else 'Pausado. Reserva pronta; geração aguardando.')
         if self.desired:
             if not self.tts_ready:
                 text = "Preparando mecanismo de voz…"
@@ -744,9 +891,11 @@ class MainWindow(QMainWindow):
 
     def save_progress(self):
         if self.book and self.book["segments"]:
-            self.store.save(self.book["hash"], self.index, self.offset, self.rate.value(), self.page,
-                            self.zoom.value(), self.completed, self.voice_choice.currentData())
-            self.store.set("audio_revision:" + self.book["hash"], AUDIO_REVISION)
+            snapshot = (self.book['hash'], self.index, self.offset, self.rate.value(), self.page,
+                        self.zoom.value(), self.completed, self.voice_choice.currentData(), self.audio_revision())
+            if snapshot != self.saved_snapshot:
+                self.store.save(*snapshot[:-1], revision=snapshot[-1])
+                self.saved_snapshot = snapshot
 
     def stop_voice(self):
         if self.tts:
@@ -789,6 +938,8 @@ class MainWindow(QMainWindow):
             self.pdf.stop()
         self.pdf = None
         self.book = None
+        self.page_segments = {}
+        self.saved_snapshot = None
         self.importing = False
         self.render_busy = False
         self.render_pending = None

@@ -1,0 +1,87 @@
+PDF VOZ 0.2.4 — CORREÇÕES DA AUDITORIA
+
+COMO ATUALIZAR
+1. Feche o leitor.
+2. Guarde uma cópia dos arquivos do projeto (ou faça um commit local no Git).
+3. Extraia este ZIP em uma pasta temporária. Copie TODO o conteúdo para a pasta
+   atual PDF_Voz_v0_2_1, ao lado de leitor_pdf.py. Aceite substituir os arquivos.
+   A pasta leitor nova deve ser mesclada com a pasta leitor existente.
+4. Mantenha suas pastas .venv e models. Este pacote não contém esses arquivos.
+5. Não é necessário reinstalar dependências para esta atualização.
+6. No terminal do VS Code, na pasta do projeto, execute:
+   .\.venv\Scripts\python.exe -m compileall -q leitor reader leitor_pdf.py app.py
+7. Se não aparecer erro, execute:
+   .\5_ABRIR_LEITOR.bat
+8. Use Abrir PDF para selecionar o livro novamente.
+
+O TÍTULO DA JANELA DEVE MOSTRAR 0.2.4.
+O ponto de leitura é mantido por trecho. Após a atualização, o trecho atual
+pode recomeçar, pois a nova pronúncia muda a duração do áudio.
+
+TRATAMENTO DA LEITURA
+Automático: usa a identificação de prosa, título ou código obtida do PDF.
+Prosa: força as regras de texto comum para todo o livro.
+Código: força a leitura técnica para todo o livro.
+A escolha é salva por livro. Mudar o modo descarta os áudios da sessão atual
+para que sejam gerados com as regras novas. Comece com Automático.
+
+ETAPA 1 — FALA CONTEXTUAL
+- Tipo do trecho propagado da extração até a síntese.
+- Operadores com ou sem espaços, potências, divisão inteira, comparações,
+  atribuições, sinais negativos, pontuação de código, strings e comentários.
+- Moedas em português separadas da leitura de decimais em código.
+- Dígitos Unicode não causam mais falha no dicionário de algarismos.
+- Títulos e versões mantêm a leitura de ponto.
+- Normalização centralizada em leitor/narration.py.
+
+ETAPA 2 — TRECHOS E RETOMADA
+- Código longo dividido em unidades lexicais, sem repetir a linha inteira.
+- Identificadores/literais individuais gigantes têm fallback literal em partes.
+- Cada chamada de síntese fica limitada a 320 caracteres após expansão.
+- Correção da compatibilidade de IDs de linha dos testes.
+- Revisão da fala identifica mudanças de regras e reinicia apenas o offset.
+- Testes existentes atualizados para duas frases curtas agrupadas.
+
+ETAPA 3 — ROBUSTEZ E DIAGNÓSTICO
+- Processo PDF morto detectado também após a abertura.
+- Cinco minutos sem resposta/progresso durante tarefa encerram o worker e
+  permitem nova tentativa; PDF deve ser reaberto pelo botão Abrir PDF.
+- Dados de eSpeak em caminho ASCII reutilizados quando a assinatura coincide.
+- Progresso inalterado não é regravado a cada cinco segundos; revisão/progresso
+  são gravados na mesma transação.
+- Índice por página evita percorrer o livro inteiro a cada exibição.
+- Menu Arquivo: gerar diagnóstico atual e remover livro atual do histórico.
+- Diagnóstico BAT inclui dependências do desktop e configuração de CPU.
+- Motor dos testes antigos unificado com o desktop e quatro threads.
+- Informação de RTF recente no tooltip da barra de reserva.
+
+VALIDAÇÃO NO SEU COMPUTADOR
+Teste primeiro uma página com título 2.4, valores 26.2 e R$ 1.000,00 e expressões
+miles*1.61, x=-2, 2**3, 10//2. Compare o texto original ao que é falado.
+Pause durante o preparo: o buffer deve crescer sem começar a tocar.
+Continue, mude de trecho e de voz. Feche e reabra para conferir a retomada.
+Se necessário, menu Arquivo > Gerar diagnóstico atual. O arquivo não inclui
+texto do livro nem senha. O diagnóstico de voz/espeak já existente pode conter
+caminhos locais. Confira qualquer log antes de compartilhar.
+
+TESTES AUTOMÁTICOS (OPCIONAL)
+.\.venv\Scripts\python.exe -m unittest discover -v
+
+LIMITES
+Não é um interpretador completo de Python, não traduz inglês e nunca executa
+os exemplos do livro. É um scanner lexical tolerante a trechos incompletos;
+linguagens e construções não cobertas podem exigir regras específicas.
+A classificação por fonte/layout continua heurística; tabelas complexas,
+múltiplas colunas e PDFs sem texto precisam de trabalho adicional.
+Números com ponto em prosa seguem convenções brasileiras de milhar quando
+reconhecidos; use Código para leitura técnica literal quando necessário.
+A remoção do histórico exclui registros lógicos, não é apagamento forense do
+banco. O PDF original é preservado.
+Nenhuma promessa de ganho percentual de velocidade: medir no notebook.
+
+VALIDAÇÃO EXECUTADA
+46 testes aprovados em Linux, Python 3.12, PySide6 6.10.2, PyMuPDF 1.26.6,
+soundfile 0.13.1. Interface verificada em modo offscreen.
+Processo real de PDF testado. Escrita/limpeza de WAV testadas com modelo simulado.
+Não houve síntese real Kokoro, avaliação auditiva, benchmark Ryzen ou teste
+completo no Windows nesta rodada. Nenhum modelo foi baixado.

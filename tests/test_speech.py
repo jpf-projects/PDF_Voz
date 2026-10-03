@@ -24,10 +24,10 @@ class SpeechTests(unittest.TestCase):
         words=[dict(text=t,page=0,line=i,box=[0,i,10,i+1],break_before=i==3)
                for i,t in enumerate(['Uma','frase','que','continua','na','linha.','Outra.'])]
         segments=segment_words(words)
-        self.assertEqual([s['text'] for s in segments],['Uma frase que continua na linha.','Outra.'])
+        self.assertEqual([s['text'] for s in segments],['Uma frase que continua na linha. Outra.'])
         old={'segments':[{'text':'Uma frase que'},{'text':'continua na linha.'},{'text':'Outra.'}]}
         progress={'index':1,'offset':400,'rate':1,'page':0,'zoom':1,'voice':'pf_dora','completed':False}
         mapped=remap_progress(progress,old,{'segments':segments})
         self.assertEqual((mapped['index'],mapped['offset']),(0,0))
         progress['index']=2
-        self.assertEqual(remap_progress(progress,old,{'segments':segments})['index'],1)
+        self.assertEqual(remap_progress(progress,old,{'segments':segments})['index'],0)

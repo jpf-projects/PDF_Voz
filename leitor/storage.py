@@ -34,9 +34,11 @@ class Store:
     def history(self):
         return self.db.execute("SELECT path,title FROM books ORDER BY rowid DESC LIMIT 20").fetchall()
 
-    def save(self, key, index, offset, rate, page, zoom, completed=False, voice="pf_dora"):
+    def save(self, key, index, offset, rate, page, zoom, completed=False, voice="pf_dora", revision=None):
         self.db.execute("INSERT OR REPLACE INTO progress VALUES(?,?,?,?,?,?,?,?)",
                         (key, index, offset, rate, page, zoom, int(completed), voice))
+        if revision is not None:
+            self.db.execute("INSERT OR REPLACE INTO settings VALUES(?,?)", ('audio_revision:' + key, revision))
         self.db.commit()
 
     def load(self, key):
@@ -48,8 +50,17 @@ class Store:
         return row[0] if row else default
 
     def set(self, key, value):
+        if self.get(key, None) == str(value):
+            return
         self.db.execute("INSERT OR REPLACE INTO settings VALUES(?,?)", (key, str(value)))
         self.db.commit()
+
+    def forget(self, key):
+        with self.db:
+            self.db.execute('DELETE FROM books WHERE hash=?', (key,))
+            self.db.execute('DELETE FROM progress WHERE hash=?', (key,))
+            self.db.executemany('DELETE FROM settings WHERE key=?',
+                               [('audio_revision:' + key,), ('narration_mode:' + key,)])
 
     def close(self):
         self.db.close()

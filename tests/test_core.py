@@ -50,8 +50,8 @@ class CoreTests(unittest.TestCase):
             doc.save(path)
             doc.close()
             book = extract_book(path)
-            self.assertEqual(len(book['segments']), 2)
-            self.assertEqual(book['segments'][0]['text'], 'Uma frase simples.')
+            self.assertEqual(len(book['segments']), 1)
+            self.assertEqual(book['segments'][0]['text'], 'Uma frase simples. Outra frase aqui.')
             with fitz.open(path) as doc:
                 r = book['segments'][0]['regions'][0]
                 self.assertEqual(r['display_box'], list(fitz.Rect(r['box']) * doc[0].rotation_matrix))

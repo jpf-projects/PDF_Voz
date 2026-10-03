@@ -22,15 +22,8 @@ def load_sample(name="padrao.txt"):
 
 
 def diagnostics():
-    packages = {}
-    for name in ("kokoro-onnx", "onnxruntime", "numpy", "soundfile", "pypdf", "phonemizer", "espeakng-loader"):
-        try:
-            packages[name] = importlib.metadata.version(name)
-        except importlib.metadata.PackageNotFoundError:
-            packages[name] = "ausente"
-    return {"aplicacao": VERSION, "python": platform.python_version(),
-            "sistema": platform.system(), "arquitetura": platform.machine(),
-            "pacotes": packages}
+    from leitor.diagnostics import diagnostics as current_diagnostics
+    return current_diagnostics()
 
 
 def run(text, voice, engine, open_audio=True):
@@ -112,7 +105,7 @@ def main():
         return
     from reader.engine import VoiceEngine
     print("Preparando voz no processador. Aguarde...")
-    engine = VoiceEngine(model, voices, threads=2)
+    engine = VoiceEngine(model, voices, threads=4)
     print(f"Modelo carregado em {engine.load_seconds:.1f}s.")
     if args.texto:
         run(args.texto.read_text("utf-8-sig"), args.voz, engine, not args.sem_abrir)
