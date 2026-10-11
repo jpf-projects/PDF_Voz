@@ -1,4 +1,4 @@
-# Guia do leitor — PDF Voz 0.2.6
+# Guia do leitor — PDF Voz 0.2.7
 
 Instale pelo `INSTALAR.bat` e abra pelo `ABRIR.bat`. As instruções completas estão no [README](README.md).
 
@@ -39,3 +39,11 @@ A instalação e os modelos permanecem na pasta do projeto. Não mova ou exclua 
 Use Arquivo → Gerar diagnóstico atual, ou `ferramentas/DIAGNOSTICO.bat` se a janela não abrir. O diagnóstico permite conferir versão, dependências e processamento por CPU. Detalhes de erros ficam nos logs; revise caminhos locais antes de compartilhá-los.
 
 Guias anteriores estão em `docs/historico` apenas como registro de evolução. Para o funcionamento atual, use este guia.
+
+## Pausas e números na versão 0.2.7
+
+Em modo Automático, o tipo extraído do trecho e do próximo trecho orienta a pausa: 550 ms ao entrar/sair de título, 420 ms entre prosa e código e pelo menos 280 ms ao encerrar uma linha de código. O ponto final em prosa mantém 300 ms; dois-pontos passam a 280 ms. São margens após o último som detectado, antes da aplicação da velocidade do player, e não tempos exatos entre palavras. O recorte conservador da fala foi mantido.
+
+Os modos Prosa e Código forçam também a classificação usada para as pausas. Se a classificação automática errar, a pausa pode não corresponder à estrutura real do livro.
+
+Em código, 000 é narrado como zero zero zero. Expressões com duas ou mais vírgulas entre grupos numéricos, como 1,000,000, têm a grafia explicitada também em prosa; decimais simples como 1,50 mantêm o tratamento anterior. Essa regra é conservadora para livros técnicos e não converte automaticamente essas expressões em milhões.

@@ -2,7 +2,7 @@
 import re
 import unicodedata
 
-NARRATION_REVISION = 'contexto-1'
+NARRATION_REVISION = 'contexto-2'
 DIGITS = dict(zip('0123456789', ('zero','um','dois','três','quatro','cinco','seis','sete','oito','nove')))
 TERMS = {'python':'páiton', 'linux':'línux', 'default':'difólt', 'gcc':'gê cê cê'}
 OPERATORS = {
@@ -57,6 +57,8 @@ def number(text):
     if '.' in text:
         left, right = text.split('.', 1)
         return (left or 'zero') + ' ponto' + (' ' + ' '.join(DIGITS.get(c, c) for c in right) if right else '')
+    if len(text) > 1 and text.startswith('0') and text.isdecimal():
+        return ' '.join(DIGITS[c] for c in text)
     return text
 
 
@@ -111,6 +113,10 @@ def prose_text(text):
                   lambda m: m[1].replace('.', '') + (m[2] or ''), text)
     text = re.sub(r'\bPython\s+([0-9]+(?:\.[0-9]+)+)\b',
                   lambda m: 'Python versão ' + ' ponto '.join(m[1].split('.')), text, flags=re.I)
+    # Mais de uma vírgula entre grupos numéricos: explicita a grafia,
+    # sem interpretar como milhar ou modificar decimais brasileiros (1,50).
+    text = re.sub(r'(?<![\w,])([0-9]+(?:,[0-9]+){2,})(?![\w,])',
+                  lambda m: ' vírgula '.join(number(group) for group in m[1].split(',')), text)
     return terms(text)
 
 
@@ -128,22 +134,37 @@ def prepare_spoken_text(text, kind='prose'):
     return re.sub(r'\s+', ' ', result).strip()
 
 
+# Evita tratar abreviações e iniciais como finais de frase na divisão interna.
+_ABBREVIATIONS = {"dr.", "dra.", "sr.", "sra.", "srta.", "prof.", "profa.",
+                  "pág.", "págs.", "fig.", "art.", "vol.", "ex.", "etc.", "nº.", "séc."}
+
+
 def spoken_chunks(text, limit=320):
-    """Limita cada chamada ao TTS após expansão. Não perde palavras/caracteres."""
+    """Prefere pontuação; preserva texto e limite após expandir a fala."""
     if limit < 1:
         raise ValueError('Limite de fala inválido.')
-    pending = ''
-    for word in text.split():
-        if len(word) > limit:
-            if pending:
-                yield pending
-                pending = ''
-            for start in range(0, len(word), limit):
-                yield word[start:start+limit]
+    remaining = ' '.join(text.split())
+    while len(remaining) > limit:
+        # Só escolhe limites de palavra; pontos/vírgulas internos não são cortes.
+        boundaries = [m.start() for m in re.finditer(' ', remaining[:limit + 1])]
+        if not boundaries:
+            yield remaining[:limit]
+            remaining = remaining[limit:].lstrip()
             continue
-        if pending and len(pending) + len(word) + 1 > limit:
-            yield pending
-            pending = ''
-        pending = (pending + ' ' + word).strip()
-    if pending:
-        yield pending
+        strong, weak = [], []
+        for end in boundaries:
+            tail = remaining[:end].split()[-1].rstrip('"”’\')]}')
+            if re.search(r'[.!?…]$', tail):
+                if (tail.lower() not in _ABBREVIATIONS
+                        and not re.fullmatch(r'[A-ZÀ-Ý]\.|\d+\.', tail)):
+                    strong.append(end)
+            elif re.search(r'[,;:]$', tail):
+                weak.append(end)
+        # Não produz um fragmento minúsculo só para terminar em pontuação.
+        good = [end for end in strong if end >= limit * .35]
+        clauses = [end for end in weak if end >= limit * .5]
+        cut = good[-1] if good else clauses[-1] if clauses else boundaries[-1]
+        yield remaining[:cut]
+        remaining = remaining[cut:].lstrip()
+    if remaining:
+        yield remaining

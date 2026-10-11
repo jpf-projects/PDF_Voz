@@ -729,6 +729,11 @@ class MainWindow(QMainWindow):
                              else self.narration_mode.currentData()),
                 }
 
+                following = index + 1
+                if following < len(self.book['segments']):
+                    mode = self.narration_mode.currentData()
+                    job['next_kind'] = (self.book['segments'][following].get('kind', 'prose')
+                                        if mode == 'auto' else mode)
                 self.pending_audio = job
                 self.tts_activity = time.monotonic()
                 self.tts.send(job)

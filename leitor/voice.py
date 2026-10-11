@@ -112,6 +112,10 @@ class VoiceEngine:
             for index, part in enumerate(parts, 1):
                 text = part['text'] if isinstance(part, dict) else part
                 kind = part.get('kind', 'prose') if isinstance(part, dict) else 'prose'
+                next_kind = part.get('next_kind') if isinstance(part, dict) else None
+                if next_kind is None and index < len(parts):
+                    following = parts[index]
+                    next_kind = following.get('kind', 'prose') if isinstance(following, dict) else 'prose'
                 spoken = prepare_spoken_text(text, kind)
                 chunks = list(spoken_chunks(spoken))
                 if not chunks:
@@ -128,7 +132,8 @@ class VoiceEngine:
                         raise ValueError(f'Áudio inválido no trecho {index}.')
                     if float(np.max(np.abs(audio))) < 1e-5:
                         raise ValueError(f'Áudio silencioso no trecho {index}.')
-                    audio = finish_audio(audio, rate, chunk)
+                    audio = finish_audio(audio, rate, chunk, kind=kind,
+                                         next_kind=next_kind, continuation=chunk_index < len(chunks))
                     if writer is None:
                         expected_rate = rate
                         writer = sf.SoundFile(str(temporary), 'w', samplerate=rate,

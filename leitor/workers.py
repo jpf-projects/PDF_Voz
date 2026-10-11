@@ -46,7 +46,8 @@ def voice_worker(commands, results, model_dir):
         if job is None:
             break
         try:
-            metric = engine.render([{'text': job['text'], 'kind': job.get('kind', 'prose')}],
+            metric = engine.render([{'text': job['text'], 'kind': job.get('kind', 'prose'),
+                                    'next_kind': job.get('next_kind')}],
                 job.get('voice', 'pf_dora'), job['path'],
                 progress=lambda _: results.put({'kind': 'progress', 'token': job['token']}))
             results.put({"kind": "audio", "token": job["token"], "index": job["index"],
