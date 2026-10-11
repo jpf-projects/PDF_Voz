@@ -1,43 +1,63 @@
-# PDF Voz 0.2.3
+# PDF Voz 0.2.5
 
-Leitor desktop para abrir PDFs locais e narrar o texto em português, com vozes Dora, Alex e Santa. O processamento de PDF e a síntese de voz acontecem no computador; não é necessária conta nem chave de API.
+Leitor local de PDFs em português para Windows 11 x64. A versão 0.2.5 simplifica a instalação; mantém o motor de voz, as quatro threads de CPU e a preparação de áudio durante a pausa.
 
-## Requisitos
+## Primeira instalação
 
-- Windows 11 de 64 bits (plataforma-alvo desta versão).
-- Python 3.12.x de 64 bits. Pode ser instalado junto com outras versões; não remova o Python que já usa. O instalador verifica a versão e informa se estiver faltando. O instalador oficial está em [python.org/downloads/windows](https://www.python.org/downloads/windows/).
-- Internet durante a instalação, para baixar os pacotes Python e os modelos de voz.
-- Aproximadamente 2 GB livres como margem de planejamento. Os dois arquivos de modelo ocupam cerca de 338 MiB; o ambiente Python e a interface também usam espaço, e o total varia conforme o sistema.
+1. Instale Python 3.12 de 64 bits, disponível em https://www.python.org/downloads/windows/ . Não é necessário VS Code.
+2. Extraia o pacote completo para uma pasta na qual você possa gravar, como Documentos. Não execute os arquivos dentro do ZIP.
+3. Com internet, execute **INSTALAR.bat**. Aguarde a mensagem de instalação concluída.
+4. Execute **ABRIR.bat**, abra um PDF e inicie a leitura.
 
-Esta versão tem o Windows 11 como plataforma-alvo, mas a validação integrada registrada para a 0.2.3 foi executada em Linux; áudio físico e instalação no Windows ainda precisam de confirmação no equipamento.
+O instalador cria ou reaproveita `.venv`, instala todas as dependências, verifica conflitos, prepara os modelos ausentes e verifica bibliotecas nativas e português brasileiro. Não instala Python automaticamente e não precisa de administrador. O teste final não reproduz som: confira fones/alto-falantes ao abrir o leitor.
 
-Não é necessário instalar o eSpeak NG separadamente. A dependência Python `espeakng-loader` fornece a biblioteca e os dados de pronúncia do eSpeak NG usados pelo sintetizador. O aplicativo seleciona essa cópia local, sem exigir instalação global no Windows. Também não é necessário instalar CUDA ou executar como administrador; a inferência usa CPU.
+Reserve alguns GB livres para Python, bibliotecas, modelos e temporários. Os modelos são os mesmos da versão anterior. Depois da instalação, a leitura funciona sem internet, conta ou chave de API. Não é necessário instalar eSpeak ou CUDA separadamente.
 
-## Baixar e instalar
+## Atualizar uma instalação existente
 
-1. Baixe o ZIP completo da versão distribuída pelo projeto e extraia todos os arquivos para uma pasta local. Não execute os `.bat` de dentro do ZIP.
-2. Mantenha a internet conectada e abra `1_INSTALAR.bat`. Ele cria o ambiente isolado `.venv`, instala as dependências de voz e baixa os modelos para `models`. A primeira etapa pode demorar.
-3. Quando terminar, abra `4_ATUALIZAR_LEITOR.bat`. Apesar do nome, esse passo também é necessário numa instalação nova: instala as dependências da interface gráfica e do leitor de PDF no mesmo `.venv`.
-4. Abra `5_ABRIR_LEITOR.bat` para iniciar o leitor. Clique em **Abrir PDF** e selecione o arquivo.
+Feche o leitor. Faça uma cópia da pasta atual como reserva. Extraia o conteúdo desta atualização **dentro da pasta existente**, ao lado de `leitor_pdf.py`, substituindo os arquivos quando solicitado. Preserve `.venv` e `models`. Não coloque a atualização numa subpasta adicional.
 
-Não feche a janela de instalação antes de aparecer a mensagem de conclusão. Para instalar novamente após uma falha de rede, execute o respectivo `.bat` outra vez. Os detalhes ficam em `logs/instalacao.txt` ou `logs/instalacao_leitor.txt`.
+Execute `INSTALAR.bat` uma vez e, depois, `ABRIR.bat`. Os modelos existentes são conferidos e reaproveitados. O instalador não apaga modelos, PDFs, progresso ou preferências. A pasta de dados do aplicativo mantém o mesmo nome e a revisão do áudio não mudou nesta atualização.
 
-## Usar depois da instalação
+Se você usa uma pasta de modelos externa selecionada na interface, o instalador ainda prepara a pasta `models` ao lado do projeto. Para evitar uma segunda cópia, mantenha nesta instalação a pasta de modelos original. O leitor continua aceitando uma pasta externa para leitura.
 
-Para as próximas execuções, basta abrir `5_ABRIR_LEITOR.bat`. Os arquivos `.venv` e `models` são necessários: mantenha-os na pasta do projeto. Depois da instalação, a leitura não precisa de internet. Os PDFs não são enviados para servidores.
+Os cinco atalhos numerados antigos e as entradas `bootstrap.py`, `instalar_leitor.py` e `app.py` permanecem como compatibilidade. Eles redirecionam às implementações atuais. Não é necessário executá-los em sequência. O arquivo `requirements_leitor.txt` também apenas encaminha à lista principal.
 
-`2_TESTAR_VOZ.bat` é opcional e abre o teste de voz por menu; não é o leitor de PDFs. `3_DIAGNOSTICO.bat` mostra as versões de Python e dos pacotes instalados.
+## Ajuda
 
-## Dependências instaladas
+Em caso de falha, leia a mensagem e `logs/instalacao.txt`. Uma nova execução tenta concluir a instalação; não remove o ambiente existente. Se `.venv` estiver incompatível ou incompleta, renomeie-a para `.venv_anterior` e execute novamente. Isso recria apenas o ambiente de bibliotecas e requer internet.
 
-O pip instala as versões fixadas nos arquivos de requisitos do projeto. As principais são PySide6 (interface), PyMuPDF (leitura de PDF), kokoro-onnx e ONNX Runtime (síntese), além de phonemizer e espeakng-loader (fonemas e pronúncia). Pacotes de suporte, como NumPy, SoundFile e pypdf, também são instalados automaticamente. Não é preciso instalar esses pacotes manualmente.
+`ferramentas/DIAGNOSTICO.bat` informa versões mesmo se a interface não abrir. O menu do aplicativo também oferece diagnóstico. Logs do instalador ficam na pasta do projeto; logs de leitura ficam na pasta de dados do usuário.
 
-## VS Code e ajuda
+O teste antigo de voz é opcional: execute `INSTALAR.bat --ferramentas` pelo terminal e, depois, `ferramentas/TESTAR_VOZ.bat`. Ele utiliza `pypdf` e pode criar WAVs permanentes em `resultados`; esses WAVs não são o cache automático do leitor.
 
-Para iniciar pelo terminal do VS Code, na pasta do projeto:
+## Organização
+
+| Caminho | Função |
+| --- | --- |
+| `INSTALAR.bat` / `instalar.py` | Instalação completa e reparação |
+| `ABRIR.bat` / `leitor_pdf.py` | Abertura do leitor |
+| `leitor/` | Interface, PDF, voz, modelos, armazenamento e diagnóstico |
+| `requirements.txt` | Dependências diretas |
+| `dependencias/constraints.txt` | Versões fixadas, incluindo dependências indiretas |
+| `dependencias/ferramentas.txt` | Dependências opcionais do teste antigo |
+| `ferramentas/` e `reader/` | Ferramentas e compatibilidade do protótipo |
+| `tests/` | Testes de desenvolvimento |
+| `docs/` | Arquitetura, validações e histórico |
+| `models/` e `.venv/` | Gerados localmente; não enviados ao Git |
+
+A lista de versões foi preservada a partir da 0.2.4 e resolvida para Windows x64/Python 3.12. Não há atualização automática para versões novas. `pip freeze` registra o ambiente realmente instalado em `logs/dependencias_instaladas.txt`. Constraints não substituem testes reais no Windows.
+
+## Desenvolvimento
+
+No terminal, para instalar também as ferramentas de teste:
 
 ```powershell
+.\INSTALAR.bat --ferramentas
+.\.venv\Scripts\python.exe -m unittest discover -s tests -p "test_*.py" -v
 .\.venv\Scripts\python.exe leitor_pdf.py
 ```
 
-O guia de controles, limitações e atualizações está em [README_LEITOR.md](README_LEITOR.md). A validação disponível e seus limites estão em [docs/VALIDACAO_v0_2_3.md](docs/VALIDACAO_v0_2_3.md). Em caso de falha, inclua o log da etapa correspondente ao pedir ajuda; revise os caminhos locais antes de compartilhar.
+Não remova DLLs ou executáveis individuais de `.venv`. Excluir `__pycache__` com o programa fechado é seguro, mas não é necessário para instalar ou atualizar.
+
+Veja [o guia do leitor](README_LEITOR.md), [as alterações](docs/ALTERACOES_v0_2_5.md) e [a validação](docs/VALIDACAO_v0_2_5.md). A criação de executável/instalador sem Python fica para uma etapa futura.

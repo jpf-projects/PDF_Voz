@@ -8,7 +8,7 @@ from .speech import AUDIO_REVISION
 
 def diagnostics():
     packages = {}
-    for name in ('PySide6','PyMuPDF','kokoro-onnx','onnxruntime','numpy','soundfile','pypdf','phonemizer','espeakng-loader'):
+    for name in ('PySide6','PyMuPDF','kokoro-onnx','onnxruntime','numpy','soundfile','phonemizer','espeakng-loader'):
         try:
             packages[name] = importlib.metadata.version(name)
         except importlib.metadata.PackageNotFoundError:

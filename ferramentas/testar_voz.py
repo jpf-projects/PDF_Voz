@@ -11,7 +11,7 @@ import traceback
 import uuid
 
 from reader import VERSION
-from reader.assets import ROOT, ensure_models
+from leitor.assets import ROOT, ensure_models
 from reader.text import chunks, normalize, read_pdf_page
 
 VOICES = {"1": "pf_dora", "2": "pm_alex", "3": "pm_santa"}
@@ -101,7 +101,7 @@ def main():
         return
     model, voices = ensure_models(allow_download=args.preparar)
     if args.preparar:
-        print("Modelos preparados. Agora execute 2_TESTAR_VOZ.bat.")
+        print("Modelos preparados. Agora execute ferramentas/TESTAR_VOZ.bat.")
         return
     from reader.engine import VoiceEngine
     print("Preparando voz no processador. Aguarde...")

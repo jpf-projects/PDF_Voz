@@ -1,0 +1,3 @@
+# Teste de voz antigo e seus testes de PDF.
+-r ../requirements.txt
+pypdf==6.1.1
