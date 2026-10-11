@@ -1,6 +1,14 @@
-# PDF Voz 0.2.5
+# PDF Voz 0.2.6
 
-Leitor local de PDFs em português para Windows 11 x64. A versão 0.2.5 simplifica a instalação; mantém o motor de voz, as quatro threads de CPU e a preparação de áudio durante a pausa.
+Leitor local de PDFs em português para Windows 11 x64. A versão 0.2.6 reorganiza a interface com painel lateral recolhível e configurações em janela própria. Mantém a instalação unificada, o motor de voz, as quatro threads de CPU e a preparação de áudio durante a pausa.
+
+## Atualização de layout 0.2.5 → 0.2.6
+
+Feche o leitor e extraia o conteúdo do ZIP de layout na raiz do projeto, ao lado de `ABRIR.bat`, mesclando as pastas e substituindo os arquivos. Abra `ABRIR.bat`. Não é necessário executar o instalador novamente: nenhuma dependência mudou. O pacote de layout contém somente arquivos alterados e requer a instalação 0.2.5 existente.
+
+O botão Configurações reúne voz, saída de áudio, reserva, tratamento da leitura e limpeza de áudios. O botão Painel lateral ou Ctrl+B recolhe Trechos/Sumário/Recentes. Fechar livro fica no menu Arquivo. Reprodução, velocidade, volume e início antecipado continuam na janela principal.
+
+Veja [alterações e validação do layout](docs/LAYOUT_v0_2_6.md).
 
 ## Primeira instalação
 

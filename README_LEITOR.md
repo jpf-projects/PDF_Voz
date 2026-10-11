@@ -1,6 +1,14 @@
-# Guia do leitor — PDF Voz 0.2.5
+# Guia do leitor — PDF Voz 0.2.6
 
 Instale pelo `INSTALAR.bat` e abra pelo `ABRIR.bat`. As instruções completas estão no [README](README.md).
+
+## Interface
+
+Use Painel lateral (Ctrl+B) para recolher ou mostrar Trechos, Sumário e Recentes. A divisória permite ajustar a largura; a preferência de visibilidade é salva. Abrir PDF e Configurações ficam no topo, junto do título. Página, zoom e Acompanhar leitura ficam na linha seguinte.
+
+Trecho anterior, Reproduzir/Pausar, próximo trecho, velocidade e volume ficam sempre na barra inferior. A faixa fina indica a reserva de áudio, acompanhada de segundos prontos. Ouvir o que já está pronto continua na janela principal e só fica habilitado quando aplicável.
+
+Configurações abre uma janela não modal: a reprodução continua enquanto você consulta as opções. Ela reúne voz, saída, reserva, tratamento da leitura, atualização de dispositivos, Som do Windows e Limpar áudios. As opções são aplicadas imediatamente; trocar voz ou tratamento continua regenerando os trechos como antes. Fechar configurações apenas fecha essa janela. Fechar livro fica no menu Arquivo.
 
 ## Leitura
 
