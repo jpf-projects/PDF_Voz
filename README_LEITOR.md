@@ -1,4 +1,4 @@
-# Guia do leitor — PDF Voz 0.2.7
+# Guia do leitor — PDF Voz 0.2.9
 
 Instale pelo `INSTALAR.bat` e abra pelo `ABRIR.bat`. As instruções completas estão no [README](README.md).
 
@@ -24,7 +24,7 @@ Depois que o mecanismo de voz foi iniciado, pausar interrompe a reprodução, ma
 
 ## Livros técnicos
 
-Tratamento da leitura oferece Automático, Prosa e Código. O modo automático usa heurísticas do PDF e pode errar; escolha manualmente quando necessário. A preparação da fala trata números, símbolos e alguns termos, mantendo separado o texto usado para exibição. Não executa código extraído do livro. Não há OCR nem garantia de ordem correta em tabelas ou PDFs com várias colunas.
+Configurações → Modo de leitura oferece Automático, Comum e Técnica. Comum mantém a pontuação para o ritmo, sem expandir operadores em palavras; Técnica explicita símbolos e números como código, inclusive em trechos de texto comum. Para livros que misturam explicações e exemplos de programação, comece pelo Automático. A escolha é salva por livro; a antiga opção Prosa é migrada para Comum. O modo automático usa heurísticas do PDF e pode errar; escolha manualmente quando necessário. A preparação da fala trata números, símbolos e alguns termos, mantendo separado o texto usado para exibição. Não executa código extraído do livro. Não há OCR nem garantia de ordem correta em tabelas ou PDFs com várias colunas.
 
 ## Histórico e arquivos
 
@@ -44,6 +44,20 @@ Guias anteriores estão em `docs/historico` apenas como registro de evolução. 
 
 Em modo Automático, o tipo extraído do trecho e do próximo trecho orienta a pausa: 550 ms ao entrar/sair de título, 420 ms entre prosa e código e pelo menos 280 ms ao encerrar uma linha de código. O ponto final em prosa mantém 300 ms; dois-pontos passam a 280 ms. São margens após o último som detectado, antes da aplicação da velocidade do player, e não tempos exatos entre palavras. O recorte conservador da fala foi mantido.
 
-Os modos Prosa e Código forçam também a classificação usada para as pausas. Se a classificação automática errar, a pausa pode não corresponder à estrutura real do livro.
+Os modos Comum e Técnica forçam também a classificação usada para as pausas. Se a classificação automática errar, a pausa pode não corresponder à estrutura real do livro.
 
 Em código, 000 é narrado como zero zero zero. Expressões com duas ou mais vírgulas entre grupos numéricos, como 1,000,000, têm a grafia explicitada também em prosa; decimais simples como 1,50 mantêm o tratamento anterior. Essa regra é conservadora para livros técnicos e não converte automaticamente essas expressões em milhões.
+
+## Caracteres invisíveis e atualização 0.2.8
+
+A extração e a preparação da fala removem controles invisíveis como U+200B e BOM. Trechos inteiramente vazios são descartados antes da fila de voz; o PDF original e as coordenadas do destaque são preservados. As sequências escritas literalmente, como `\u200b` em um exemplo de código, permanecem intactas.
+
+Reabra o PDF após atualizar. O progresso é remapeado se a segmentação mudar; o trecho salvo reinicia do começo porque a revisão do áudio mudou. A nova limpeza não corrige OCR, ordem de colunas ou todos os casos de pronúncia do modelo.
+
+## Teste de pronúncia e base global — 0.2.9
+
+Abra Configurações → Testar pronúncia. A tela oferece 18 frases de avaliação e texto livre; escolha voz e tratamento, confira a proposta e prepare a comparação. A versão original recebe somente limpeza de caracteres de controle; a preparada usa as regras do leitor, ou a edição feita no campo B. Ambas usam a mesma voz, velocidade 1× e tratamento de áudio. Não é uma comparação de modelos nem de versões do aplicativo.
+
+Você pode experimentar uma escrita alternativa no campo B. Ela vale somente para o teste. O dicionário global distribuído em leitor/data/pronuncias_pt_br.json é separado da base de testes. Reinicie o aplicativo após editar esse JSON. Regras candidatas não são ativadas automaticamente e palavras ambíguas não receberam substituições globais.
+
+A leitura do livro fica pausada durante a comparação. Um processo de voz prepara os dois áudios em sequência, sem carregar um segundo modelo ao mesmo tempo. Ao fechar, os arquivos temporários são removidos; se o Windows ainda estiver liberando um arquivo, o leitor tenta a limpeza novamente. Clique em Continuar para retomar o livro.

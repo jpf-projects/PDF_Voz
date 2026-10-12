@@ -1,10 +1,12 @@
 """Preparação local de fala. Nunca executa ou avalia o código do PDF."""
 import re
 import unicodedata
+from .text_cleaning import clean_text, strip_list_marker
+from .pronunciation import apply_dictionary, dictionary_revision
+from .normalization import normalize_prose, map_unprotected
 
-NARRATION_REVISION = 'contexto-2'
+NARRATION_REVISION = 'dicionario-5:' + dictionary_revision()
 DIGITS = dict(zip('0123456789', ('zero','um','dois','três','quatro','cinco','seis','sete','oito','nove')))
-TERMS = {'python':'páiton', 'linux':'línux', 'default':'difólt', 'gcc':'gê cê cê'}
 OPERATORS = {
     '**=':'recebe a potência de', '//=':'recebe a divisão inteira por',
     '<<=':'recebe o deslocamento à esquerda por', '>>=':'recebe o deslocamento à direita por',
@@ -38,9 +40,8 @@ def ascii_digits(text):
     return ''.join(str(unicodedata.decimal(c)) if c.isdecimal() else c for c in text)
 
 
-def terms(text):
-    return re.sub(r'\b(Python|Linux|default|GCC)\b',
-                  lambda m: TERMS[m[0].lower()], text, flags=re.I)
+def terms(text, mode='prose'):
+    return apply_dictionary(text, mode)
 
 
 def number(text):
@@ -93,13 +94,15 @@ def code_text(text):
         elif kind == 'comment':
             out.append('Comentário: ' + terms(token[1:].strip()))
         elif kind == 'name':
-            out.append(terms(token.replace('_', ' sublinhado ')))
+            out.append(terms(token, 'code').replace('_', ' sublinhado '))
         else:
             out.append(token)
     return prefix + ' '.join(out)
 
 
-def prose_text(text):
+def prose_text(text, technical=True, mode=None):
+    mode = mode or ('prose' if technical else 'common')
+    text = normalize_prose(text)
     # Moeda brasileira: não converte o ponto de milhar em ponto decimal.
     def money(m):
         whole = m[1].replace('.', '')
@@ -111,26 +114,33 @@ def prose_text(text):
     text = re.sub(r'R\$\s*([0-9]{1,3}(?:\.[0-9]{3})+|[0-9]+)(?:,([0-9]{2}))?(?![0-9,])', money, text)
     text = re.sub(r'(?<![\w.,])([0-9]{1,3}(?:\.[0-9]{3})+)(,[0-9]+)?(?![\w.]|,[0-9])',
                   lambda m: m[1].replace('.', '') + (m[2] or ''), text)
+    if not technical:
+        return terms(text, mode)
     text = re.sub(r'\bPython\s+([0-9]+(?:\.[0-9]+)+)\b',
                   lambda m: 'Python versão ' + ' ponto '.join(m[1].split('.')), text, flags=re.I)
     # Mais de uma vírgula entre grupos numéricos: explicita a grafia,
     # sem interpretar como milhar ou modificar decimais brasileiros (1,50).
     text = re.sub(r'(?<![\w,])([0-9]+(?:,[0-9]+){2,})(?![\w,])',
                   lambda m: ' vírgula '.join(number(group) for group in m[1].split(',')), text)
-    return terms(text)
+    return terms(text, mode)
 
 
 def prepare_spoken_text(text, kind='prose'):
-    if kind == 'code_literal':
+    text = clean_text(text)
+    if kind not in ('code', 'code_literal'):
+        text = strip_list_marker(text)
+    if kind == 'common':
+        result = map_unprotected(text, lambda t: prose_text(t, technical=False))
+    elif kind == 'code_literal':
         result = literal(text)
     elif kind == 'code':
         result = code_text(text)
     elif kind == 'heading':
         text = re.sub(r'^(\s*)([0-9]+(?:\.[0-9]+)+)\s*(?:[-–—]\s*)?',
                       lambda m: m[1] + ' ponto '.join(m[2].split('.')) + ': ', text)
-        result = prose_text(text)
+        result = map_unprotected(text, lambda t: prose_text(t, mode='heading'))
     else:
-        result = prose_text(text)
+        result = map_unprotected(text, prose_text)
     return re.sub(r'\s+', ' ', result).strip()
 
 

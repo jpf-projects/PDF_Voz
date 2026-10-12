@@ -1,6 +1,7 @@
 """Segmentação de prosa e linhas técnicas, sem dependências de Qt ou TTS."""
 import re
 from .narration import LEXER
+from .text_cleaning import strip_list_marker
 
 ABBREVIATIONS = {"dr.", "dra.", "sr.", "sra.", "srta.", "prof.", "profa.",
                  "pág.", "págs.", "fig.", "art.", "vol.", "ex.", "etc.", "nº.", "séc."}
@@ -33,7 +34,9 @@ def make_segment(words, index):
     # Uma linha técnica completa preserva espaços internos da extração.
     if kind != "prose" and all(w["line"] == words[0]["line"] for w in words):
         text = words[0].get("line_text", text)
-    return {"id": index, "text": text, "regions": regions,
+    return {"id": index, "text": text,
+            "speech_text": strip_list_marker(text) if words[0].get("list_start") else text,
+            "regions": regions,
             "page": words[0]["page"], "kind": kind,
             "source_word_count": len(words)}
 
@@ -69,7 +72,7 @@ def segment_words(words, max_chars=360):
             complete_start = True
             continue
         if pending:
-            new_block = block_starts_sentence(pending, word)
+            new_block = word.get("list_start", False) or block_starts_sentence(pending, word)
             if new_block or length + len(word["text"]) + 1 > max_chars:
                 groups.append((pending, False))
                 pending, length = [], 0
@@ -93,7 +96,8 @@ def segment_words(words, max_chars=360):
             if (second_complete and a <= 120 and b <= 120
                     and a + b + 1 <= min(240, max_chars)
                     and all(w["page"] == first[0]["page"] for w in first + second)
-                    and not second[0].get("break_before")):
+                    and not second[0].get("break_before")
+                    and not second[0].get("list_start")):
                 selected, consumed = first + second, 2
         if selected[0].get('kind', 'prose') != 'prose':
             result.extend(technical_segments(selected, len(result), max_chars))
@@ -147,6 +151,7 @@ def technical_segments(words, index, limit):
             included = words[:1]
         segment = make_segment(included, index + len(result))
         segment['text'] = part
+        segment['speech_text'] = strip_list_marker(part) if a == 0 and words[0].get('list_start') else part
         segment['source_word_count'] = sum(1 for x, y, w in positions if a <= x < b)
         if literal_part:
             segment['kind'] = 'code_literal'

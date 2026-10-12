@@ -1,6 +1,30 @@
-# PDF Voz 0.2.7
+# PDF Voz 0.2.9
 
 Leitor local de PDFs em português para Windows 11 x64. A versão 0.2.6 reorganiza a interface com painel lateral recolhível e configurações em janela própria. Mantém a instalação unificada, o motor de voz, as quatro threads de CPU e a preparação de áudio durante a pausa.
+
+## Pronúncias e comparação A/B — 0.2.9
+
+Esta atualização adiciona uma base global em `leitor/data/pronuncias_pt_br.json`, regras conservadoras de abreviações, horários e unidades, e a tela **Configurações → Testar pronúncia**. Inclui 18 frases de avaliação. As quatro adaptações de termos já existentes foram transferidas para o dicionário; palavras ambíguas continuam inativas. Não foram adicionadas exceções por livro nem transcrições fonéticas automáticas dos manuais.
+
+Na tela de teste, escolha uma frase, modo e voz, confira ou edite o texto preparado e clique em Preparar comparação. Ouça A e B. Alterações nessa tela são temporárias e não entram automaticamente no dicionário. Ao abrir o teste, o leitor pausa e encerra a inferência do livro para evitar dois modelos concorrentes. Os WAVs de teste são temporários e a leitura do livro só volta quando você clicar em Continuar.
+
+Pacote cumulativo para instalações 0.2.7 a 0.2.8.1: feche o programa, extraia na raiz junto a ABRIR.bat e substitua os arquivos, incluindo a nova pasta leitor/data. Reabra o PDF. Não reinstale dependências nem apague modelos. Consulte [o guia da versão](docs/PRONUNCIAS_v0_2_9.md).
+
+## Correção de marcadores de lista — 0.2.8.1
+
+Marcadores tipográficos como • e ● no início de itens de texto deixam de ser enviados à voz. Os tópicos são separados em trechos, preservando o texto exibido e suas regiões no PDF. Símbolos no meio de expressões e linhas classificadas como código são preservados. A identificação depende do texto e da estrutura extraídos do PDF.
+
+Este pacote inclui também as alterações da 0.2.8 e a correção de zoom. Pode ser aplicado sobre 0.2.7, 0.2.7.1 ou 0.2.8. Feche o aplicativo, extraia na raiz junto a ABRIR.bat, substitua os arquivos e reabra o PDF para recalcular os trechos. Não reinstale dependências nem remova modelos.
+
+Veja [detalhes da correção](docs/LISTAS_v0_2_8_1.md).
+
+## Atualização 0.2.7 ou 0.2.7.1 → 0.2.8
+
+Feche o leitor e extraia o pacote 0.2.8 na raiz do projeto, junto de `ABRIR.bat`, mesclando as pastas e substituindo os arquivos. Não remova `.venv`, modelos ou dados do usuário. Abra `ABRIR.bat` e reabra o PDF para recalcular a extração.
+
+A correção remove caracteres invisíveis como U+200B antes de preparar a fala e descarta trechos que ficam vazios. Em **Configurações → Modo de leitura**, escolha Comum (livros e documentos), Técnica (símbolos e programação) ou Automático (texto e código). A escolha é salva por livro. O pacote inclui os botões de zoom da 0.2.7.1. Não há dependências novas nem necessidade de reinstalação.
+
+Veja [detalhes e validação da versão 0.2.8](docs/LEITURA_v0_2_8.md).
 
 ## Atualização de leitura 0.2.6 → 0.2.7
 

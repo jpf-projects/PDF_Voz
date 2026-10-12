@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "ptbr-01",
+      "group": "tonicidade",
+      "text": "A mulher sábia sabia que o sabiá cantava.",
+      "goal": "Preservar três posições de tonicidade.",
+      "reference": "UFSM, p. 67",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-02",
+      "group": "vogais",
+      "text": "Minha avó conversou com meu avô.",
+      "goal": "Distinguir vogais abertas e fechadas.",
+      "reference": "UFSM, pp. 49–51; frase criada para teste",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-03",
+      "group": "nasalidade",
+      "text": "O menino tomou banho e lavou a mão.",
+      "goal": "Manter nasalidade sem acrescentar sílabas.",
+      "reference": "UFSM, pp. 18–19 e 26–27; frase criada",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-04",
+      "group": "consoantes",
+      "text": "O carro era caro.",
+      "goal": "Distinguir r simples e forte.",
+      "reference": "UFSM, pp. 28–29; frase criada",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-05",
+      "group": "hiato",
+      "text": "Os pais viajaram para outro país.",
+      "goal": "Distinguir ditongo e hiato.",
+      "reference": "UFSM, p. 65; frase criada",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-06",
+      "group": "hiato",
+      "text": "Ela saía de casa com uma saia azul.",
+      "goal": "Preservar a diferença marcada pelo acento.",
+      "reference": "UFSM, p. 65; frase criada",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-07",
+      "group": "contexto",
+      "text": "Pegue a colher para servir.",
+      "goal": "Colher: substantivo, avaliar timbre.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-08",
+      "group": "contexto",
+      "text": "Vamos colher os frutos amanhã.",
+      "goal": "Colher: verbo, avaliar timbre.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-09",
+      "group": "contexto",
+      "text": "Estou com sede.",
+      "goal": "Sede: necessidade de beber água.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-10",
+      "group": "contexto",
+      "text": "A sede da empresa fica aqui.",
+      "goal": "Sede: estabelecimento da empresa.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-11",
+      "group": "contexto",
+      "text": "O gosto da fruta é agradável.",
+      "goal": "Gosto: substantivo.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-12",
+      "group": "contexto",
+      "text": "Eu gosto de estudar.",
+      "goal": "Gosto: verbo.",
+      "reference": "Caso do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-13",
+      "group": "frase",
+      "text": "O mar aberto estava calmo.",
+      "goal": "Avaliar ligação entre palavras sem cortar a frase.",
+      "reference": "UFSM, p. 58; frase criada",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-14",
+      "group": "ritmo",
+      "text": "Você terminou? Ótimo! Vamos continuar.",
+      "goal": "Avaliar perguntas, exclamações e continuidade.",
+      "reference": "Caso do projeto; entonação não validada pelos manuais",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-15",
+      "group": "normalizacao",
+      "text": "O Dr. Paulo chegou às 14h30. Consulte a pág. 12.",
+      "goal": "Abreviações e horário explícito.",
+      "reference": "Regra de normalização do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-16",
+      "group": "normalizacao",
+      "text": "O pacote pesa 2 kg e percorreu 3 km.",
+      "goal": "Unidades após números, preservando o significado.",
+      "reference": "Regra de normalização do projeto",
+      "kind": "common"
+    },
+    {
+      "id": "ptbr-17",
+      "group": "tecnico",
+      "text": "Python e Linux aparecem neste exemplo.",
+      "goal": "Comparar as adaptações herdadas do aplicativo.",
+      "reference": "Regra herdada; sem validação fonética formal",
+      "kind": "prose"
+    },
+    {
+      "id": "ptbr-18",
+      "group": "tecnico",
+      "text": "x = 2.4 + 1",
+      "goal": "Avaliar com modo Técnico.",
+      "reference": "Caso do projeto",
+      "kind": "code"
+    }
+  ]
+}

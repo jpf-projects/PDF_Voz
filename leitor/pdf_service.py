@@ -4,11 +4,12 @@ import re
 from collections import Counter
 from pathlib import Path
 from .domain import segment_words
+from .text_cleaning import clean_text, strip_list_marker
 
 
 def _clean(text):
     # Não altera hífens, decimais, operadores nem nomes de variáveis.
-    return text.replace("\x00", "").replace("\u00a0", " ")
+    return clean_text(text)
 
 
 def _line_metadata(textpage, fitz):
@@ -67,11 +68,14 @@ def extract_book(path, password="", progress=lambda *args: None):
             line_counts = Counter((w[5], w[6]) for w in raw)
             pages.append({"width": page.rect.width, "height": page.rect.height,
                           "rotation": page.rotation, "words": len(raw)})
+            seen_lines = set()
             for word in raw:
                 text = _clean(word[4]).strip()
                 if not text:
                     continue
                 line_key = (word[5], word[6])
+                first_in_line = line_key not in seen_lines
+                seen_lines.add(line_key)
                 meta = metadata.get(line_key, {})
                 kind = meta.get("kind", "prose")
                 # Exclui apenas linha numérica isolada na margem; preserva código.
@@ -81,7 +85,9 @@ def extract_book(path, password="", progress=lambda *args: None):
                     continue
                 boundary = number == last_page and word[5] != last_block
                 item = {"text": text, "box": list(word[:4]), "page": number,
-                        "line": line_key, "break_before": boundary, "kind": kind}
+                        "line": line_key, "break_before": boundary, "kind": kind,
+                        "list_start": (first_in_line and kind != "code"
+                                       and strip_list_marker(text) != text)}
                 if kind != "prose" and meta:
                     line_text = meta["text"].rstrip()
                     if kind == "code":
@@ -103,7 +109,7 @@ def extract_book(path, password="", progress=lambda *args: None):
         return {"hash": digest.hexdigest(), "path": path,
                 "title": doc.metadata.get("title") or Path(path).stem,
                 "pages": pages, "segments": segments, "toc": toc,
-                "extraction_version": 3}
+                "extraction_version": 5}
 
 
 def render_page(doc, number, scale):

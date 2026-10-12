@@ -78,7 +78,7 @@ class RhythmControllerTests(unittest.TestCase):
         self.assertEqual(self.w.tts.jobs[-1]['next_kind'],'heading')
         self.w.pending_audio=None
         self.w.narration_mode.blockSignals(True)
-        self.w.narration_mode.setCurrentIndex(self.w.narration_mode.findData('prose'))
+        self.w.narration_mode.setCurrentIndex(self.w.narration_mode.findData('common'))
         self.w.narration_mode.blockSignals(False)
         self.w.drive()
-        self.assertEqual(self.w.tts.jobs[-1]['next_kind'],'prose')
+        self.assertEqual(self.w.tts.jobs[-1]['next_kind'],'common')

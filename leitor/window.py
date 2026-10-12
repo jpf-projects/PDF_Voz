@@ -12,11 +12,12 @@ from PySide6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, Q
     QLabel, QSplitter, QListWidget, QListWidgetItem, QSpinBox, QDoubleSpinBox,
     QProgressBar, QSlider, QCheckBox, QFileDialog, QMessageBox, QInputDialog,
     QComboBox, QLineEdit, QTabWidget, QTreeWidget, QTreeWidgetItem,
-    QDialog, QFormLayout, QSizePolicy)
+    QDialog, QFormLayout, QSizePolicy, QAbstractSpinBox)
 
 from .domain import buffered_seconds, next_missing, remap_progress
 from . import VERSION
 from .speech import AUDIO_REVISION
+from .text_cleaning import clean_text
 from .storage import Store, clean_sessions
 from .viewer import PDFView
 from .workers import ProcessChannel, pdf_worker, voice_worker
@@ -151,10 +152,22 @@ class MainWindow(QMainWindow):
         self.zoom.setSingleStep(.1)
         self.zoom.setValue(1.0)
         self.zoom.setSuffix(" ×")
+        self.zoom.setButtonSymbols(QAbstractSpinBox.ButtonSymbols.NoButtons)
+        self.zoom.setFixedWidth(80)
+        self.zoom.setAccessibleName("Nível de zoom")
+        self.zoom_out = QPushButton("−")
+        self.zoom_in = QPushButton("+")
+        for button, label in ((self.zoom_out, "Diminuir zoom"), (self.zoom_in, "Aumentar zoom")):
+            button.setFixedWidth(36)
+            button.setToolTip(label)
+            button.setAccessibleName(label)
+            button.setAutoRepeat(True)
+        self.zoom_out.clicked.connect(self.zoom.stepDown)
+        self.zoom_in.clicked.connect(self.zoom.stepUp)
         self.zoom.valueChanged.connect(self.zoom_changed)
         self.follow = QCheckBox("Acompanhar leitura")
         self.follow.setChecked(True)
-        for widget in (previous, self.page_box, self.page_total, following, QLabel("Zoom"), self.zoom, self.follow):
+        for widget in (previous, self.page_box, self.page_total, following, QLabel("Zoom"), self.zoom_out, self.zoom, self.zoom_in, self.follow):
             navigation.addWidget(widget)
         navigation.addStretch()
         layout.addLayout(navigation)
@@ -235,16 +248,26 @@ class MainWindow(QMainWindow):
         self.reserve.setToolTip("Reserva de fala pronta, não tempo de espera. Menor reserva pode causar mais pausas.")
         self.reserve.currentIndexChanged.connect(self.change_reserve)
         self.narration_mode = QComboBox()
-        for label, code in (("Automático", "auto"), ("Prosa", "prose"), ("Código", "code")):
+        for label, code in (("Automático — texto e código", "auto"), ("Comum — livros e documentos", "common"), ("Técnica — símbolos e programação", "code")):
             self.narration_mode.addItem(label, code)
-        self.narration_mode.setToolTip("Tratamento da fala deste livro. Automático usa o tipo extraído do PDF.")
+        self.narration_mode.setToolTip("Escolha salva para cada livro. Trocar o modo prepara novamente o áudio.")
         self.narration_mode.currentIndexChanged.connect(self.change_narration_mode)
         self.start_now = QPushButton("Ouvir o que já está pronto")
         self.start_now.setEnabled(False)
         self.start_now.clicked.connect(self.play_ready)
         form.addRow("Voz", self.voice_choice)
         form.addRow("Reserva inicial", self.reserve)
-        form.addRow("Tratamento da leitura", self.narration_mode)
+        form.addRow("Modo de leitura", self.narration_mode)
+        mode_help = QLabel(
+            "Comum: pontuação usada para ritmo, sem nomear cada símbolo.\n"
+            "Técnica: explicita operadores, símbolos e números de código.\n"
+            "Automático: alterna conforme o tipo de trecho identificado no PDF."
+        )
+        mode_help.setWordWrap(True)
+        form.addRow(mode_help)
+        self.pronunciation_test = QPushButton("Testar pronúncia")
+        self.pronunciation_test.clicked.connect(self.open_pronunciation_test)
+        preferences_layout.addWidget(self.pronunciation_test)
         preferences_layout.addWidget(clear)
         done = QPushButton("Fechar configurações")
         done.clicked.connect(self.preferences.close)
@@ -316,6 +339,37 @@ class MainWindow(QMainWindow):
         self.preferences.show()
         self.preferences.raise_()
         self.preferences.activateWindow()
+
+    def open_pronunciation_test(self):
+        from .pronunciation_dialog import PronunciationDialog
+        # Evita duas inferências concorrentes e preserva o ponto de leitura.
+        if self.desired:
+            self.toggle_play()
+        self.player.pause()
+        self.save_progress()
+        if self.tts:
+            self.tts.stop()
+            self.tts = None
+        self.tts_ready = False
+        if self.pending_audio:
+            path = Path(self.pending_audio['path'])
+            self.garbage.update((str(path), str(path.with_suffix('.part.wav'))))
+            self.pending_audio = None
+        self.collect_garbage()
+        candidates = [self.store.get('models'), str(Path(__file__).resolve().parents[1] / 'models')]
+        model_dir = next((p for p in candidates if p and self.valid_models(p)), None)
+        if not model_dir:
+            model_dir = self.select_models()
+        folder = self.audio_root / ('session_test_' + uuid.uuid4().hex)
+        dialog = PronunciationDialog(self, model_dir, folder, self.voice_choice.currentData(),
+                                     self.audio.device(), self.audio.volume())
+        try:
+            dialog.exec()
+        finally:
+            dialog.deleteLater()
+            self.retired_folders.add(str(folder))
+            self.collect_garbage()
+        self.status.setText('Teste encerrado. Clique em Continuar para retomar a leitura.')
 
     def audio_revision(self):
         return AUDIO_REVISION + ':' + (self.narration_mode.currentData() or 'auto')
@@ -451,9 +505,20 @@ class MainWindow(QMainWindow):
     def book_ready(self, book):
         self.importing = False
         self.narration_mode.blockSignals(True)
-        self.narration_mode.setCurrentIndex(max(0, self.narration_mode.findData(
-            self.store.get('narration_mode:' + book['hash'], 'auto'))))
+        mode = self.store.get('narration_mode:' + book['hash'], 'auto')
+        if mode == 'prose':  # Compatibilidade com a opção antiga.
+            mode = 'common'
+        self.narration_mode.setCurrentIndex(max(0, self.narration_mode.findData(mode)))
         self.narration_mode.blockSignals(False)
+        # Protege também livros recebidos de extrações antigas. As regiões do
+        # PDF permanecem intactas; só trechos realmente vazios são descartados.
+        cleaned = []
+        for segment in book['segments']:
+            text = clean_text(segment['text']).strip()
+            speech_text = clean_text(segment.get('speech_text', text)).strip()
+            if text and speech_text:
+                cleaned.append(dict(segment, id=len(cleaned), text=text, speech_text=speech_text))
+        book = dict(book, segments=cleaned)
         self.saved_snapshot = None
         saved = remap_progress(self.store.load(book["hash"]), self.store.book_payload(book["hash"]), book)
         if saved and self.store.get("audio_revision:" + book["hash"]) != self.audio_revision():
@@ -720,7 +785,7 @@ class MainWindow(QMainWindow):
 
                 job = {
                     "index": index,
-                    "text": self.book["segments"][index]["text"],
+                    "text": self.book["segments"][index].get("speech_text", self.book["segments"][index]["text"]),
                     "path": str(path),
                     "token": self.token,
                     "voice": self.voice_choice.currentData(),

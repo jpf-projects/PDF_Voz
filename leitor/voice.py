@@ -6,6 +6,7 @@ import json
 import shutil
 import tempfile
 from .speech import finish_audio
+from .text_cleaning import clean_text
 from .narration import prepare_spoken_text, spoken_chunks, NARRATION_REVISION
 
 
@@ -116,7 +117,8 @@ class VoiceEngine:
                 if next_kind is None and index < len(parts):
                     following = parts[index]
                     next_kind = following.get('kind', 'prose') if isinstance(following, dict) else 'prose'
-                spoken = prepare_spoken_text(text, kind)
+                spoken = (clean_text(text) if isinstance(part, dict) and part.get('prepared')
+                          else prepare_spoken_text(text, kind))
                 chunks = list(spoken_chunks(spoken))
                 if not chunks:
                     raise ValueError(f'Texto vazio no trecho {index}.')

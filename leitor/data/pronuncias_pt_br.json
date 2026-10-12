@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "revision": "ptbr-1",
+  "entries": [
+    {
+      "id": "python",
+      "term": "Python",
+      "spoken": "páiton",
+      "locale": "pt-BR",
+      "category": "termo_tecnico",
+      "modes": [
+        "prose",
+        "heading",
+        "code"
+      ],
+      "status": "herdada",
+      "enabled": true,
+      "context": "palavra_completa",
+      "reference": "Regra existente no PDF Voz 0.2.8.1; não derivada dos manuais.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Preservada por compatibilidade; comparação auditiva formal pendente."
+      }
+    },
+    {
+      "id": "linux",
+      "term": "Linux",
+      "spoken": "línux",
+      "locale": "pt-BR",
+      "category": "termo_tecnico",
+      "modes": [
+        "prose",
+        "heading",
+        "code"
+      ],
+      "status": "herdada",
+      "enabled": true,
+      "context": "palavra_completa",
+      "reference": "Regra existente no PDF Voz 0.2.8.1; não derivada dos manuais.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Preservada por compatibilidade; comparação auditiva formal pendente."
+      }
+    },
+    {
+      "id": "default",
+      "term": "default",
+      "spoken": "difólt",
+      "locale": "pt-BR",
+      "category": "termo_tecnico",
+      "modes": [
+        "prose",
+        "heading",
+        "code"
+      ],
+      "status": "herdada",
+      "enabled": true,
+      "context": "palavra_completa",
+      "reference": "Regra existente no PDF Voz 0.2.8.1; não derivada dos manuais.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Preservada por compatibilidade; comparação auditiva formal pendente."
+      }
+    },
+    {
+      "id": "gcc",
+      "term": "GCC",
+      "spoken": "gê cê cê",
+      "locale": "pt-BR",
+      "category": "termo_tecnico",
+      "modes": [
+        "prose",
+        "heading",
+        "code"
+      ],
+      "status": "herdada",
+      "enabled": true,
+      "context": "palavra_completa",
+      "reference": "Regra existente no PDF Voz 0.2.8.1; não derivada dos manuais.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Preservada por compatibilidade; comparação auditiva formal pendente."
+      }
+    },
+    {
+      "id": "colher",
+      "term": "colher",
+      "spoken": null,
+      "locale": "pt-BR",
+      "category": "ambiguidade",
+      "modes": [
+        "common",
+        "prose"
+      ],
+      "status": "candidata",
+      "enabled": false,
+      "context": "Exige desambiguação; não substituir globalmente.",
+      "reference": "Caso de avaliação proposto para o projeto.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Sem correção automática."
+      }
+    },
+    {
+      "id": "sede",
+      "term": "sede",
+      "spoken": null,
+      "locale": "pt-BR",
+      "category": "ambiguidade",
+      "modes": [
+        "common",
+        "prose"
+      ],
+      "status": "candidata",
+      "enabled": false,
+      "context": "Exige desambiguação; não substituir globalmente.",
+      "reference": "Caso de avaliação proposto para o projeto.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Sem correção automática."
+      }
+    },
+    {
+      "id": "gosto",
+      "term": "gosto",
+      "spoken": null,
+      "locale": "pt-BR",
+      "category": "ambiguidade",
+      "modes": [
+        "common",
+        "prose"
+      ],
+      "status": "candidata",
+      "enabled": false,
+      "context": "Exige desambiguação; não substituir globalmente.",
+      "reference": "Caso de avaliação proposto para o projeto.",
+      "phonetic_reference": null,
+      "validation": {
+        "voices": [],
+        "note": "Sem correção automática."
+      }
+    }
+  ]
+}

@@ -14,10 +14,10 @@ class RecoveryTests(unittest.TestCase):
         self.w.drive()
         self.assertEqual(self.w.tts.jobs[-1]['kind'],'code')
         self.w.pending_audio=None
-        self.w.narration_mode.setCurrentIndex(self.w.narration_mode.findData('prose'))
+        self.w.narration_mode.setCurrentIndex(self.w.narration_mode.findData('common'))
         self.w.drive()
-        self.assertEqual(self.w.tts.jobs[-1]['kind'],'prose')
-        self.assertEqual(self.w.store.get('narration_mode:test'),'prose')
+        self.assertEqual(self.w.tts.jobs[-1]['kind'],'common')
+        self.assertEqual(self.w.store.get('narration_mode:test'),'common')
 
     def test_paused_generation_stops_at_cap_and_completion(self):
         self.w.cache={0:{'duration':90,'path':'unused'}}
